@@ -1,0 +1,18 @@
+# API 키 (절대 올리지 않음)
+.env
+
+# 데이터베이스 (각자 collect.py로 생성)
+*.db
+*.db-journal
+
+# 파이썬
+.venv/
+__pycache__/
+*.pyc
+
+# 에디터
+.vscode/
+.idea/
+
+# 구 경계 (collect.py가 자동으로 받음)
+data/*.geojson

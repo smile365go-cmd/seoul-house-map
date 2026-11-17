@@ -163,6 +163,12 @@ def run(years):
     finally:
         conn.close()
 
+    import mapview  # 지도 파일도 최신 데이터로 다시 만든다
+
+    path = mapview.export_html()
+    if path:
+        print(f"지도 파일 갱신: {path.name}")
+
 
 def main():
     this_year = date.today().year

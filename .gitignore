@@ -16,3 +16,6 @@ __pycache__/
 
 # 구 경계 (collect.py가 자동으로 받음)
 data/*.geojson
+
+# 폴더에서 여는 지도 파일 (API 키가 들어 있어 올리지 않음)
+서울집값지도.html

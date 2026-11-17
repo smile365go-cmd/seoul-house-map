@@ -1,27 +1,21 @@
-"""서울시 집값 지도 — 실행: streamlit run app.py"""
-import json
-
-import branca.colormap as cm
-import folium
+"""서울시 집값 지도 — 실행: streamlit run app.py (또는 지도열기.bat 더블클릭)"""
 import pandas as pd
 import streamlit as st
 from streamlit_folium import st_folium
 
 import collect
 import db
-from config import DB_PATH, GEOJSON_PATH, SEOUL_API_KEY, VWORLD_API_KEY
+import mapview
+from config import DB_PATH, GEOJSON_PATH, SEOUL_API_KEY
+from mapview import build_map, won
 
 st.set_page_config(page_title="서울시 집값 지도", page_icon="🏠", layout="wide")
 
-SEOUL_CENTER = [37.5665, 126.9780]
-SEOUL_BOUNDS = [[37.41, 126.73], [37.72, 127.27]]  # 서울 바깥으로 못 나가게
-SEOUL_VIEW = [[37.43, 126.76], [37.70, 127.19]]    # 처음 화면: 서울 25개 구가 꽉 차게
-
 
 # ---------------------------------------------------------------- 데이터
-@st.cache_data
-def load_geojson():
-    return json.loads(GEOJSON_PATH.read_text(encoding="utf-8"))
+load_geojson = st.cache_data(mapview.load_geojson)
+load_months = st.cache_data(mapview.load_months)
+gu_summary = st.cache_data(mapview.gu_summary)
 
 
 @st.cache_data
@@ -29,27 +23,6 @@ def load_building_types():
     return db.query(
         "SELECT building_type, SUM(deal_count) AS n FROM gu_monthly GROUP BY building_type ORDER BY n DESC"
     )["building_type"].tolist()
-
-
-@st.cache_data
-def load_months():
-    return db.query("SELECT DISTINCT ym FROM gu_monthly ORDER BY ym")["ym"].tolist()
-
-
-@st.cache_data
-def gu_summary(building_type, start_ym, end_ym):
-    """구별: 거래 건수 가중 평균으로 기간 전체 평당가·평균가를 계산."""
-    return db.query(
-        """SELECT gu,
-                  SUM(deal_count) AS 거래건수,
-                  CAST(ROUND(SUM(avg_price_per_pyeong_10k * deal_count) * 1.0 / SUM(deal_count)) AS INTEGER) AS 평당가,
-                  CAST(ROUND(SUM(avg_price_10k * deal_count) * 1.0 / SUM(deal_count)) AS INTEGER) AS 평균거래가
-           FROM gu_monthly
-           WHERE building_type = ? AND ym BETWEEN ? AND ?
-           GROUP BY gu
-           ORDER BY 평당가 DESC""",
-        (building_type, start_ym, end_ym),
-    )
 
 
 @st.cache_data
@@ -71,81 +44,6 @@ def recent_deals(gu, building_type, start_ym):
            ORDER BY deal_date DESC LIMIT 200""",
         (gu, building_type, start_ym + "-01"),
     )
-
-
-def won(v_10k):
-    """만원 → '12억 3,400만' 형식."""
-    if pd.isna(v_10k):
-        return "-"
-    v = int(v_10k)
-    eok, man = divmod(v, 10000)
-    if eok and man:
-        return f"{eok}억 {man:,}만"
-    return f"{eok}억" if eok else f"{man:,}만"
-
-
-# ---------------------------------------------------------------- 지도
-def build_map(geo, summary):
-    m = folium.Map(
-        location=SEOUL_CENTER,
-        zoom_start=11,
-        min_zoom=10,
-        max_zoom=16,
-        max_bounds=True,
-        min_lat=SEOUL_BOUNDS[0][0], max_lat=SEOUL_BOUNDS[1][0],
-        min_lon=SEOUL_BOUNDS[0][1], max_lon=SEOUL_BOUNDS[1][1],
-        zoom_snap=0.25,  # 0.25 단위로 확대해 서울이 화면에 꽉 차게
-        tiles=None,
-    )
-    if VWORLD_API_KEY:
-        folium.TileLayer(
-            tiles=f"https://api.vworld.kr/req/wmts/1.0.0/{VWORLD_API_KEY}/white/{{z}}/{{y}}/{{x}}.png",
-            attr="© 국토교통부 브이월드",
-            name="브이월드",
-        ).add_to(m)
-    else:
-        folium.TileLayer("cartodbpositron", name="기본 지도").add_to(m)
-
-    by_gu = summary.set_index("gu").to_dict("index")
-    values = summary["평당가"].dropna()
-    cmap = cm.LinearColormap(
-        ["#fff5eb", "#fdae6b", "#e6550d", "#7f2704"],
-        vmin=values.min() if len(values) else 0,
-        vmax=values.max() if len(values) else 1,
-        caption="평당 평균가 (만원)",
-    )
-
-    features = []
-    for f in geo["features"]:
-        gu = f["properties"]["gu"]
-        info = by_gu.get(gu, {})
-        props = {
-            "gu": gu,
-            "price": info.get("평당가"),
-            "price_txt": won(info.get("평당가")) + " / 평" if info else "거래 없음",
-            "avg_txt": won(info.get("평균거래가")) if info else "-",
-            "count_txt": f"{int(info['거래건수']):,}건" if info else "0건",
-        }
-        features.append({**f, "properties": props})
-
-    folium.GeoJson(
-        {"type": "FeatureCollection", "features": features},
-        style_function=lambda f: {
-            "fillColor": cmap(f["properties"]["price"]) if f["properties"]["price"] else "#dddddd",
-            "color": "#555555",
-            "weight": 1,
-            "fillOpacity": 0.72,
-        },
-        highlight_function=lambda f: {"weight": 3, "color": "#000000", "fillOpacity": 0.85},
-        tooltip=folium.GeoJsonTooltip(
-            fields=["gu", "price_txt", "avg_txt", "count_txt"],
-            aliases=["자치구", "평당가", "평균 거래가", "거래 건수"],
-            sticky=True,
-        ),
-    ).add_to(m)
-    cmap.add_to(m)
-    m.fit_bounds(SEOUL_VIEW)
-    return m
 
 
 # ---------------------------------------------------------------- 화면

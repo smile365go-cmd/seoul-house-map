@@ -31,7 +31,8 @@ VWORLD_API_KEY=여기에_브이월드_키
 | 파일 | 하는 일 |
 | --- | --- |
 | `지도열기.bat` | 앱을 켜고 브라우저를 엽니다. 처음이면 설치와 데이터 수집까지 자동으로 합니다. 검은 창을 닫으면 앱이 꺼집니다. |
-| `데이터받기.bat` | 최신 실거래가를 다시 받습니다. |
+| `데이터받기.bat` | 최신 실거래가를 다시 받고, 지도 파일도 새로 만듭니다. |
+| `서울집값지도.html` | 앱을 켜지 않고 바로 보는 지도 (아파트, 최근 12개월). 데이터를 받으면 자동으로 생깁니다. 필터와 구 상세는 앱에서만 됩니다. |
 
 ## 실행 (Windows PowerShell)
 
@@ -60,7 +61,8 @@ streamlit run app.py     # 브라우저에서 http://localhost:8501 열림
 | --- | --- |
 | `collect.py` | 서울시 API → `deals` 테이블 저장, 브이월드 → 구 경계 GeoJSON 저장 |
 | `db.py` | SQLite 테이블 생성, 구 × 월 평균(`gu_monthly`) 계산, 조회 |
-| `app.py` | Streamlit 화면, Folium 지도 |
+| `app.py` | Streamlit 화면 (필터, 순위표, 구 상세) |
+| `mapview.py` | Folium 지도 그리기, `서울집값지도.html` 만들기 (`python mapview.py`) |
 | `config.py` | `.env`에서 키 읽기, 파일 경로 |
 | `data/realestate.db` | SQLite DB (자동 생성, GitHub 제외) |
 | `data/seoul_gu.geojson` | 구 경계 (자동 생성) |

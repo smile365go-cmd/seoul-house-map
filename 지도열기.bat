@@ -23,9 +23,13 @@ if not exist "data\realestate.db" (
     ".venv\Scripts\python.exe" collect.py
 )
 
+if not exist "서울집값지도.html" ".venv\Scripts\python.exe" mapview.py
+
 echo.
 echo 지도를 여는 중입니다. 잠시 후 브라우저가 열립니다.
+echo 브라우저가 안 열리면 주소창에 http://localhost:8501 을 입력하세요.
 echo 이 창을 닫으면 지도도 꺼집니다.
 echo.
+start "" /b cmd /c "timeout /t 4 /nobreak > nul & start http://localhost:8501"
 ".venv\Scripts\python.exe" -m streamlit run app.py
 pause

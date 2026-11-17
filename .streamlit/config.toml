@@ -1,0 +1,6 @@
+# 처음 실행 때 "Email:" 질문으로 멈추지 않게 한다. 브라우저는 지도열기.bat이 직접 연다.
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false

@@ -15,6 +15,7 @@ st.set_page_config(page_title="서울시 집값 지도", page_icon="🏠", layou
 
 SEOUL_CENTER = [37.5665, 126.9780]
 SEOUL_BOUNDS = [[37.41, 126.73], [37.72, 127.27]]  # 서울 바깥으로 못 나가게
+SEOUL_VIEW = [[37.43, 126.76], [37.70, 127.19]]    # 처음 화면: 서울 25개 구가 꽉 차게
 
 
 # ---------------------------------------------------------------- 데이터
@@ -93,6 +94,7 @@ def build_map(geo, summary):
         max_bounds=True,
         min_lat=SEOUL_BOUNDS[0][0], max_lat=SEOUL_BOUNDS[1][0],
         min_lon=SEOUL_BOUNDS[0][1], max_lon=SEOUL_BOUNDS[1][1],
+        zoom_snap=0.25,  # 0.25 단위로 확대해 서울이 화면에 꽉 차게
         tiles=None,
     )
     if VWORLD_API_KEY:
@@ -142,7 +144,7 @@ def build_map(geo, summary):
         ),
     ).add_to(m)
     cmap.add_to(m)
-    m.fit_bounds(SEOUL_BOUNDS)
+    m.fit_bounds(SEOUL_VIEW)
     return m
 
 
